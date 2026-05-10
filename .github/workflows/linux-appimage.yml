@@ -53,12 +53,18 @@ jobs:
         env:
           OUTPATH: ./dist
           APP: "CorsixTH-${{ matrix.arch }}" 
+          RAW_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
           APP_BIN: ./pkg_root/usr/bin/corsix-th
           ICON: ./CorsixTH/Original_Logo.svg
           DESKTOP: ./CorsixTH/com.corsixth.corsixth.desktop
           DEPLOY_OPENGL: 1
           DEPLOY_PIPEWIRE: 1
         run: |
+          # Strip 'v' prefix if present
+          CLEAN_VERSION=${RAW_VERSION#v}
+          # If it's a SHA (40 chars), truncate it to 7 chars
+          if [ ${#CLEAN_VERSION} -eq 40 ]; then CLEAN_VERSION=${CLEAN_VERSION:0:7}; fi
+          export VERSION="$CLEAN_VERSION"
           # Use quick-sharun to bundle and create the AppImage
           quick-sharun "$APP_BIN" /usr/lib/lua/*/lpeg.so /usr/lib/alsa-lib /usr/lib/libpulse-simple.so* /usr/lib/libfluidsynth.so*
           cp -v /etc/timidity/timidity.cfg ./AppDir/bin
