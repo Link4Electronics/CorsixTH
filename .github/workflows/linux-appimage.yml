@@ -51,8 +51,8 @@ jobs:
           OUTPATH: ./dist
           # Set the path to your binary and essential assets
           APP_BIN: ./pkg_root/usr/bin/corsix-th
-          ICON: ./pkg_root/usr/share/icons/hicolor/scalable/apps/corsix-th.svg
-          DESKTOP: ./pkg_root/usr/share/applications/corsix-th.desktop
+          ICON: https://raw.githubusercontent.com/CorsixTH/CorsixTH/refs/heads/master/CorsixTH/Original_Logo.svg
+          DESKTOP: https://raw.githubusercontent.com/CorsixTH/CorsixTH/refs/heads/master/CorsixTH/com.corsixth.corsixth.desktop
           DEPLOY_OPENGL: 1
           DEPLOY_PIPEWIRE: 1
         run: |
