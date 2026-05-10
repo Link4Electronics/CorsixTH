@@ -3,9 +3,8 @@ name: Linux AppImage
 on:
   push:
     tags:
-      - 'v*' # Triggers only on version tag
+      - 'v*'
       - '[0-9]*'
-    branches-ignore: [ 'gh-pages' ]
   workflow_dispatch:
     inputs:
       pr:
