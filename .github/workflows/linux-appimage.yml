@@ -12,7 +12,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.arch }}
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runs-on: ubuntu-latest
+          - arch: aarch64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
     container: ghcr.io/pkgforge-dev/archlinux:latest
     steps:
       - name: Checkout
@@ -23,7 +31,8 @@ jobs:
         run: |
           # Pulling dependencies based on CorsixTH Arch requirements
           pacman -Syu --noconfirm cmake ninja gcc lua lua-filesystem lua-lpeg \
-          sdl2 sdl2_mixer freetype2 ffmpeg doxygen
+          sdl2 sdl2_mixer freetype2 ffmpeg doxygen fluidsynth libdecor rtmidi
+          get-debloated-pkgs --add-common --prefer-nano ffmpeg-mini
       - name: Checkout PR (Optional)
         if: github.event.inputs.pr
         env:
@@ -33,6 +42,7 @@ jobs:
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DENABLE_UNIT_TESTS=OFF \
             -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build build --parallel $(nproc)
           DESTDIR=./pkg_root cmake --install build
@@ -41,7 +51,7 @@ jobs:
           OUTPATH: ./dist
           # Set the path to your binary and essential assets
           APP_BIN: ./pkg_root/usr/bin/corsix-th
-          ICON: ./pkg_root/usr/share/icons/hicolor/256x256/apps/corsix-th.png
+          ICON: ./pkg_root/usr/share/icons/hicolor/scalable/apps/corsix-th.svg
           DESKTOP: ./pkg_root/usr/share/applications/corsix-th.desktop
         run: |
           # Use quick-sharun to bundle and create the AppImage
