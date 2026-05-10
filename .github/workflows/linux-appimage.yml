@@ -2,6 +2,8 @@ name: Linux AppImage
 
 on:
   push:
+    tags:
+      - 'v*' # Triggers only on version tags
     branches-ignore: [ 'gh-pages' ]
   pull_request:
   workflow_dispatch:
@@ -24,7 +26,7 @@ jobs:
     container: ghcr.io/pkgforge-dev/archlinux:latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup pkgforge-dev environment
         uses: pkgforge-dev/anylinux-setup-action@v2
       - name: Install Build Dependencies
@@ -49,7 +51,7 @@ jobs:
       - name: Generate AppImage
         env:
           OUTPATH: ./dist
-          # Set the path to your binary and essential assets
+          APP: "CorsixTH-${{ matrix.arch }}" 
           APP_BIN: ./pkg_root/usr/bin/corsix-th
           ICON: ./CorsixTH/Original_Logo.svg
           DESKTOP: ./CorsixTH/com.corsixth.corsixth.desktop
@@ -63,8 +65,31 @@ jobs:
           mkdir -p ./AppDir/share/soundfonts
           wget https://raw.githubusercontent.com/Jacalz/fluid-soundfont/master/SF3/FluidR3.sf3 -O ./AppDir/share/soundfonts/FluidR3.sf3
           quick-sharun --make-appimage
-      - name: Upload AppImage
-        uses: actions/upload-artifact@v4
+      - name: Upload temporary artifact
+        uses: actions/upload-artifact@v7
         with:
-          name: CorsixTH-AppImage
-          path: dist/*.AppImage
+          name: AppImage-${{ matrix.arch }}
+          path: dist
+          
+  release:
+    needs: [build]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v6
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: AppImage-*
+          merge-multiple: true
+      - name: Release AppImage
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            *.AppImage
+            *.zsync
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
