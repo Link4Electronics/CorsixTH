@@ -53,11 +53,16 @@ jobs:
           APP_BIN: ./pkg_root/usr/bin/corsix-th
           ICON: ./pkg_root/usr/share/icons/hicolor/scalable/apps/corsix-th.svg
           DESKTOP: ./pkg_root/usr/share/applications/corsix-th.desktop
+          DEPLOY_OPENGL: 1
+          DEPLOY_PIPEWIRE: 1
         run: |
           # Use quick-sharun to bundle and create the AppImage
-          quick-sharun "$APP_BIN"
+          quick-sharun "$APP_BIN" ./pkg_root/usr/lib/lua/*/lpeg.so ./pkg_root/usr/lib/alsa-lib ./pkg_root/usr/lib/libpulse-simple.so* ./pkg_root/usr/lib/libfluidsynth.so*
+          cp -v /etc/timidity/timidity.cfg ./AppDir/bin
+          echo 'SHARUN_WORKING_DIR=${SHARUN_DIR}/bin' >> ./AppDir/.env
+          mkdir -p ./AppDir/share/soundfonts
+          wget https://raw.githubusercontent.com/Jacalz/fluid-soundfont/master/SF3/FluidR3.sf3 -O ./AppDir/share/soundfonts/FluidR3.sf3
           quick-sharun --make-appimage
-          
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
