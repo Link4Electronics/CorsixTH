@@ -31,7 +31,7 @@ jobs:
         run: |
           # Pulling dependencies based on CorsixTH Arch requirements
           pacman -Syu --noconfirm cmake ninja gcc lua lua-filesystem lua-lpeg \
-          sdl2 sdl2_mixer freetype2 ffmpeg doxygen fluidsynth libdecor rtmidi
+          sdl2 sdl2_mixer freetype2 ffmpeg doxygen fluidsynth libdecor rtmidi timidity++
           get-debloated-pkgs --add-common --prefer-nano ffmpeg-mini
       - name: Checkout PR (Optional)
         if: github.event.inputs.pr
