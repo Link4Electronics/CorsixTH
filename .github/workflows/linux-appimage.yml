@@ -57,7 +57,7 @@ jobs:
           DEPLOY_PIPEWIRE: 1
         run: |
           # Use quick-sharun to bundle and create the AppImage
-          quick-sharun "$APP_BIN" ./pkg_root/usr/lib/lua/*/lpeg.so ./pkg_root/usr/lib/alsa-lib ./pkg_root/usr/lib/libpulse-simple.so* ./pkg_root/usr/lib/libfluidsynth.so*
+          quick-sharun "$APP_BIN" /usr/lib/lua/*/lpeg.so /usr/lib/alsa-lib /usr/lib/libpulse-simple.so* /usr/lib/libfluidsynth.so*
           cp -v /etc/timidity/timidity.cfg ./AppDir/bin
           echo 'SHARUN_WORKING_DIR=${SHARUN_DIR}/bin' >> ./AppDir/.env
           mkdir -p ./AppDir/share/soundfonts
