@@ -1,0 +1,55 @@
+name: Linux AppImage
+
+on:
+  push:
+    branches-ignore: [ 'gh-pages' ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Build this PR (optional)'
+        type: number
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/pkgforge-dev/archlinux:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pkgforge-dev environment
+        uses: pkgforge-dev/anylinux-setup-action@v2
+      - name: Install Build Dependencies
+        run: |
+          # Pulling dependencies based on CorsixTH Arch requirements
+          pacman -Syu --noconfirm cmake ninja gcc lua lua-filesystem lua-lpeg \
+          sdl2 sdl2_mixer freetype2 ffmpeg doxygen
+      - name: Checkout PR (Optional)
+        if: github.event.inputs.pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr checkout ${{ github.event.inputs.pr }}
+      - name: Build CorsixTH
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build --parallel $(nproc)
+          DESTDIR=./pkg_root cmake --install build
+      - name: Generate AppImage
+        env:
+          OUTPATH: ./dist
+          # Set the path to your binary and essential assets
+          APP_BIN: ./pkg_root/usr/bin/corsix-th
+          ICON: ./pkg_root/usr/share/icons/hicolor/256x256/apps/corsix-th.png
+          DESKTOP: ./pkg_root/usr/share/applications/corsix-th.desktop
+        run: |
+          # Use quick-sharun to bundle and create the AppImage
+          quick-sharun "$APP_BIN"
+          quick-sharun --make-appimage
+          
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: CorsixTH-AppImage
+          path: dist/*.AppImage
