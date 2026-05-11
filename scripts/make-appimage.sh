@@ -13,7 +13,6 @@ pacman -Syu --noconfirm \
 	libdecor        \
     lua-filesystem  \
     lua-lpeg        \
-	ninja			\
 	pipewire-alsa   \
 	pipewire-audio  \
 	pipewire-jack   \
@@ -21,11 +20,12 @@ pacman -Syu --noconfirm \
 	sdl2_mixer      \
 	timidity++
 
+#RelWithDebInfo
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
 get-debloated-pkgs --add-common --prefer-nano ffmpeg-mini
-cmake -B build -G Ninja \
-    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+cmake -B build \
+    -DCMAKE_BUILD_TYPE=Release \
     -DENABLE_UNIT_TESTS=OFF \
     -DCMAKE_INSTALL_PREFIX=/usr
 cmake --build build --parallel $(nproc)
