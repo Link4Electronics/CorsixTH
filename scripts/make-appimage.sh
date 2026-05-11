@@ -34,7 +34,6 @@ RAW_VERSION="${GITHUB_REF_NAME:-$(git rev-parse --short HEAD)}"
 CLEAN_VERSION=${RAW_VERSION#v}
 if [ ${#CLEAN_VERSION} -eq 40 ]; then CLEAN_VERSION=${CLEAN_VERSION:0:7}; fi
 VERSION="$CLEAN_VERSION"
-export APP="CorsixTH-${VERSION}-${ARCH}" 
 export ARCH VERSION
 export OUTPATH=./dist
 export ADD_HOOKS="self-updater.hook"
