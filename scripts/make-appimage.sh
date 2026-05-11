@@ -51,4 +51,5 @@ cp -v /etc/timidity/timidity.cfg ./AppDir/bin
 echo 'SHARUN_WORKING_DIR=${SHARUN_DIR}/bin' >> ./AppDir/.env
 mkdir -p ./AppDir/share/soundfonts
 wget https://raw.githubusercontent.com/Jacalz/fluid-soundfont/master/SF3/FluidR3.sf3 -O ./AppDir/share/soundfonts/FluidR3.sf3
+echo 'SDL_SOUNDFONTS=${SHARUN_DIR}/share/soundfonts/FluidR3.sf3' >> ./AppDir/.env
 quick-sharun --make-appimage
