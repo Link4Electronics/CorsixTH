@@ -24,58 +24,18 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     container: ghcr.io/pkgforge-dev/archlinux:latest
     steps:
-      - name: Checkout
+      - name: Code Checkout
         uses: actions/checkout@v6
-      - name: Setup pkgforge-dev environment
+      - name: Preparing Container
         uses: pkgforge-dev/anylinux-setup-action@v2
-      - name: Install Build Dependencies
-        run: |
-          # Pulling dependencies based on CorsixTH Arch requirements
-          pacman -Syu --noconfirm cmake ninja gcc lua lua-filesystem lua-lpeg pipewire-alsa pipewire-audio \
-          pipewire-jack sdl2 sdl2_mixer freetype2 ffmpeg doxygen fluidsynth libdecor rtmidi timidity++
-          get-debloated-pkgs --add-common --prefer-nano ffmpeg-mini
-      - name: Checkout PR (Optional)
-        if: github.event.inputs.pr
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh pr checkout ${{ github.event.inputs.pr }}
-      - name: Build CorsixTH
-        run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DENABLE_UNIT_TESTS=OFF \
-            -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build build --parallel $(nproc)
-          DESTDIR=./pkg_root cmake --install build
-      - name: Generate AppImage
-        env:
-          OUTPATH: ./dist
-          APP: "CorsixTH-${{ matrix.arch }}" 
-          RAW_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
-          APP_BIN: ./pkg_root/usr/bin/corsix-th
-          ICON: ./CorsixTH/Original_Logo.svg
-          DESKTOP: ./CorsixTH/com.corsixth.corsixth.desktop
-          DEPLOY_OPENGL: 1
-          DEPLOY_PIPEWIRE: 1
-        run: |
-          # Strip 'v' prefix if present
-          CLEAN_VERSION=${RAW_VERSION#v}
-          # If it's a SHA (40 chars), truncate it to 7 chars
-          if [ ${#CLEAN_VERSION} -eq 40 ]; then CLEAN_VERSION=${CLEAN_VERSION:0:7}; fi
-          export VERSION="$CLEAN_VERSION"
-          # Use quick-sharun to bundle and create the AppImage
-          quick-sharun "$APP_BIN" /usr/lib/lua/*/lpeg.so /usr/lib/alsa-lib /usr/lib/libpulse-simple.so* /usr/lib/libfluidsynth.so*
-          cp -v /etc/timidity/timidity.cfg ./AppDir/bin
-          echo 'SHARUN_WORKING_DIR=${SHARUN_DIR}/bin' >> ./AppDir/.env
-          mkdir -p ./AppDir/share/soundfonts
-          wget https://raw.githubusercontent.com/Jacalz/fluid-soundfont/master/SF3/FluidR3.sf3 -O ./AppDir/share/soundfonts/FluidR3.sf3
-          quick-sharun --make-appimage
+      - name: Make AppImage
+        run: /bin/sh ./scripts/packaging/make-appimage.sh
       - name: Upload temporary artifact
         uses: actions/upload-artifact@v7
         with:
           name: AppImage-${{ matrix.arch }}
           path: dist
-          
+
   release:
     needs: [build]
     permissions:
