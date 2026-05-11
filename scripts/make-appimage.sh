@@ -20,16 +20,15 @@ pacman -Syu --noconfirm \
 	sdl2_mixer      \
 	timidity++
 
-#RelWithDebInfo
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
 get-debloated-pkgs --add-common --prefer-nano ffmpeg-mini
 cmake -B build \
-    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DENABLE_UNIT_TESTS=OFF \
     -DCMAKE_INSTALL_PREFIX=/usr
 cmake --build build --parallel $(nproc)
-DESTDIR=./pkg_root cmake --install build
+cmake --install build
 
 RAW_VERSION="${GITHUB_REF_NAME:-$(git rev-parse --short HEAD)}"
 CLEAN_VERSION=${RAW_VERSION#v}
