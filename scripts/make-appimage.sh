@@ -30,13 +30,11 @@ cmake -B build -G Ninja \
 cmake --build build --parallel $(nproc)
 DESTDIR=./pkg_root cmake --install build
 
-export APP="CorsixTH-${{ matrix.arch }}" 
-export RAW_VERSION=${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
-# Strip 'v' prefix if present
+RAW_VERSION="${GITHUB_REF_NAME:-$(git rev-parse --short HEAD)}"
 CLEAN_VERSION=${RAW_VERSION#v}
-# If it's a SHA (40 chars), truncate it to 7 chars
 if [ ${#CLEAN_VERSION} -eq 40 ]; then CLEAN_VERSION=${CLEAN_VERSION:0:7}; fi
 VERSION="$CLEAN_VERSION"
+export APP="CorsixTH-${VERSION}-${ARCH}" 
 export ARCH VERSION
 export OUTPATH=./dist
 export ADD_HOOKS="self-updater.hook"
