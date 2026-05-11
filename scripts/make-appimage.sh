@@ -13,6 +13,7 @@ pacman -Syu --noconfirm \
 	libdecor        \
     lua-filesystem  \
     lua-lpeg        \
+	ninja			\
 	pipewire-alsa   \
 	pipewire-audio  \
 	pipewire-jack   \
