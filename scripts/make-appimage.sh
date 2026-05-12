@@ -78,7 +78,7 @@ package() {
 EOF
 
 makepkg -f
-pacman --noconfirm -Rsndd sdl2-compat sdl3
+pacman --noconfirm -Rsndd sdl2-compat
 pacman --noconfirm -U *.pkg.tar.*
 cd ..
 
