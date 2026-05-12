@@ -24,6 +24,8 @@ echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
 get-debloated-pkgs --add-common --prefer-nano ffmpeg-mini
 
+sed -i 's|EUID == 0|EUID == 69|g' /usr/bin/makepkg # because the docker image is ran as root this is needed lol
+mkdir sdl2 && cd sdl2
 cat <<-'EOF' > ./PKGBUILD
 # Maintainer: HurricanePootis <hurricanepootis@protonmail.com>
 # Contributor: Sven-Hendrik Haase <svenstaro@archlinux.org>
@@ -74,6 +76,7 @@ EOF
 makepkg -f
 pacman --noconfirm -Rsndd sdl2-compat sdl3
 pacman --noconfirm -U *.pkg.tar.*
+cd ..
 
 cmake -B build \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
