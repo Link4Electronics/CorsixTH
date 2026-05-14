@@ -45,7 +45,7 @@ export DEPLOY_PIPEWIRE=1
 
 quick-sharun /usr/bin/corsix-th /usr/lib/lua/*/lpeg.so /usr/lib/alsa-lib /usr/lib/libpulse-simple.so* /usr/lib/libfluidsynth.so*
 cp -v /etc/timidity/timidity.cfg ./AppDir/bin
-cp ./LICENSE.txt ./AppDir
+cp -v ./LICENSE.txt ./AppDir
 echo 'SHARUN_WORKING_DIR=${SHARUN_DIR}/bin' >> ./AppDir/.env
 mkdir -p ./AppDir/share/soundfonts
 wget https://raw.githubusercontent.com/Jacalz/fluid-soundfont/master/SF3/FluidR3.sf3 -O ./AppDir/share/soundfonts/FluidR3.sf3
