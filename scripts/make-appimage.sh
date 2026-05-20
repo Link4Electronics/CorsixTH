@@ -7,17 +7,17 @@ ARCH=$(uname -m)
 echo "Installing package dependencies..."
 echo "---------------------------------------------------------------"
 pacman -Syu --noconfirm \
-	cmake           \
-	doxygen         \
-	fluidsynth      \
-	libdecor        \
-    lua-filesystem  \
-    lua-lpeg        \
-	pipewire-alsa   \
-	pipewire-audio  \
-	pipewire-jack   \
-	rtmidi          \
-	sdl2_mixer      \
+	cmake          \
+	doxygen        \
+	fluidsynth     \
+	libdecor       \
+    lua-filesystem \
+    lua-lpeg       \
+	pipewire-alsa  \
+	pipewire-audio \
+	pipewire-jack  \
+	rtmidi         \
+	sdl2_mixer     \
 	timidity++
 
 echo "Installing debloated packages..."
