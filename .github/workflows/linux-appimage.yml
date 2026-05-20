@@ -1,0 +1,58 @@
+name: Linux AppImage
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '[0-9]*'
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Build this PR (optional)'
+        type: number
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }}
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runs-on: ubuntu-latest
+          - arch: aarch64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
+    container: ghcr.io/pkgforge-dev/archlinux:latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v6
+      - name: Preparing Container
+        uses: pkgforge-dev/anylinux-setup-action@v2
+      - name: Make AppImage
+        run: /bin/sh ./scripts/make-appimage.sh
+      - name: Upload temporary artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: AppImage-${{ matrix.arch }}
+          path: dist
+
+  release:
+    needs: [build]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: AppImage-*
+          merge-multiple: true
+
+      - name: Release AppImage
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.AppImage
+            *.zsync
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
