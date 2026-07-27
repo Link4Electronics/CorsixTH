@@ -278,6 +278,18 @@ Colours.Title = { -- Very pale purple
 Colours.Caption = { -- Murky purple
   red = 134, green = 126, blue = 178
 }
+Colours.AdviserPanelBackground = { -- Aqua Blue
+  red = 060, green = 174, blue = 201
+}
+Colours.AdviserPanelHighlight = {
+  red = 047, green = 154, blue = 190
+}
+Colours.AdviserPanelShadow = {
+  red = 036, green = 138, blue = 158
+}
+Colours.AdviserPanelDeleteButton = {
+  red = 219, green = 036, blue = 036
+}
 
 -- Include the standard colours also
 Colours.White = {
@@ -408,6 +420,16 @@ function table_merge(...)
       end
   end
   return result
+end
+
+--! Checks if the table contains item
+function table_contains(table, value)
+  for _, val in pairs(table) do
+    if val == value then
+      return true
+    end
+  end
+  return false
 end
 
 local function serialize_string(val, options)

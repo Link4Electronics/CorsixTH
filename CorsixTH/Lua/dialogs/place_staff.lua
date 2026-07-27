@@ -57,6 +57,7 @@ function UIPlaceStaff:close()
   local play_placement_sound = true
   if employed_staff then
     employed_staff.pickup = false
+    employed_staff.staffroom_needed = nil
     employed_staff.going_to_staffroom = nil
     employed_staff:getCurrentAction().window = nil
     local room = self.world:getRoom(employed_staff.tile_x, employed_staff.tile_y)
@@ -116,8 +117,8 @@ function UIPlaceStaff:_isValidStaffPlacement()
   -- Or is it a receptionist placed on an unstaffed reception desk?
   local reception = false
   if self.profile:isType("Receptionist") then
-    local desk = world:getObject(x, y, "reception_desk") or
-        world:findObjectNear(self, "reception_desk", 0)
+    local desk = world:getObject(x, y, "reception_desk", true) or
+        world:findObjectNear(self, "reception_desk", 0, true)
     reception = desk and not desk.receptionist
   end
   return (walkable and staffable) or reception

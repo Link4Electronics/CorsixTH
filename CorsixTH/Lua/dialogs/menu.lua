@@ -199,10 +199,8 @@ function UIMenuBar:drawMenu(menu, canvas)
   local panel_sprites_draw = panel_sprites.draw
   local x, y, w, h = menu.x * s, menu.y * s, menu.width * s, menu.height * s
 
-  -- It would be better if spriteList supported scaling directly
-  canvas:scale(s)
-  menu.render_list:draw(canvas, menu.x, menu.y)
-  canvas:scale(1)
+  menu.render_list:setScaleFactor(s)
+  menu.render_list:draw(canvas, x, y)
 
   local btmy = y + h - 6 * s
   panel_sprites_draw(panel_sprites, canvas, 3, x + w - 10 * s, y, { scaleFactor = s })
@@ -817,6 +815,7 @@ function UIMenuBar:makeGameMenu(app)
     :appendItem(_S.menu_charts.graphs:format(hotkey_value_label("ingame_panel_charts", hotkeys)), function() self.ui.bottom_panel:dialogCharts(true) end)
     :appendItem(_S.menu_charts.policy:format(hotkey_value_label("ingame_panel_policy", hotkeys)), function() self.ui.bottom_panel:dialogPolicy(true) end)
     :appendItem(_S.menu_charts.machine_menu:format(hotkey_value_label("ingame_panel_machineMenu", hotkeys)), function() self.ui:addWindow(UIMachineMenu(self.ui)) end)
+    :appendItem(_S.menu_charts.adviser_history:format(hotkey_value_label("ingame_panel_adviserHistory", hotkeys)), function() self.ui:addWindow(UIAdviserHistory(self.ui)) end)
     :appendItem(_S.menu_charts.briefing, function() self.ui:showBriefing() end)
   )
 

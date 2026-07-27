@@ -220,6 +220,7 @@ local function new_hotkeys_defaults()
     ingame_zoom_out_more = {"shift", "-"},
     ingame_reset_zoom = "0",
     ingame_setTransparent = "x",
+    ingame_sellPickedUpItem = "delete",
     ingame_toggleTransparent = {"shift", "x"},
     ingame_toggleAdvisor = {"shift", "a"},
     ingame_poopLog = {"ctrl", "d"},
@@ -237,6 +238,7 @@ local function new_hotkeys_defaults()
     ingame_panel_charts = "f8",
     ingame_panel_policy = "f9",
     ingame_panel_machineMenu = "f10",
+    ingame_panel_adviserHistory = {"ctrl", "h"},
     ingame_panel_map_alt = "t",
     ingame_panel_research_alt = "r",
     ingame_panel_casebook_alt = "c",
@@ -302,12 +304,15 @@ local function config_contents(config_values)
 -------------------------------- SETTINGS MENU --------------------------------
 -- These settings can also be changed from within the game in the settings menu
 -------------------------------------------------------------------------------
--- Screen size. Must be at least 640x480. Larger sizes will require better
--- hardware in order to maintain a playable framerate. The fullscreen setting
--- can be true or false, and the game will run windowed if not fullscreen.
--- ui_scale can be set to 1, 2, or 3 to scale the user interface for higher
--- resolution displays. For example, at 1920x1080 resolution, setting ui_scale
--- to 2 will make the interface elements twice as large.
+-- Screen size (width and height). At least: 640x480.
+-- Larger sizes will require better hardware in order to maintain a playable framerate.
+-- Fullscreen. Can be true or false.
+-- The game will run windowed if not fullscreen.
+-- ui_scale. Default: 1.
+-- Whole-number UI scaling for higher-resolution displays; decimals unsupported.
+-- Example: 1920x1080 with ui_scale = 2 makes UI elements twice as large.
+-- width/ui_scale and height/ui_scale must be at least 640x480.
+-- Example: ui_scale = 2 requires resolution >= 1280x960.
 --]=] .. '\n' ..
 param(config_values, 'fullscreen') ..
 '\n' ..
@@ -327,6 +332,7 @@ param(config_values, 'ui_scale') .. [=[
 --  Finnish               / Suomi / fi / fin
 --  French                / fr / fre / fra
 --  German                / de / ger / deu
+--  Greek                 / el / gre / ell
 --  Hungarian             / hu / hun
 --  Italian               / it / ita
 --  Japanese              / ja / jp
@@ -829,6 +835,7 @@ param(hotkeys_values, 'ingame_panel_status') ..
 param(hotkeys_values, 'ingame_panel_charts') ..
 param(hotkeys_values, 'ingame_panel_policy') ..
 param(hotkeys_values, 'ingame_panel_machineMenu') ..
+param(hotkeys_values, 'ingame_panel_adviserHistory') ..
 param(hotkeys_values, 'ingame_panel_map_alt') ..
 param(hotkeys_values, 'ingame_panel_research_alt') ..
 param(hotkeys_values, 'ingame_panel_casebook_alt') ..
@@ -842,6 +849,11 @@ param(hotkeys_values, 'ingame_panel_hireStaff') .. [=[
 -- This key rotates objects while they are being placed.
 -- ]=] .. '\n' ..
 param(hotkeys_values, 'ingame_rotateobject') .. [=[
+
+----------------------------------Sell Object--------------------------------
+-- This key sell objects while they are being picked up.
+-- ]=] .. '\n' ..
+param(hotkeys_values, 'ingame_sellPickedUpItem') .. [=[
 
 -----------------------------------Quick Keys----------------------------------
 -- These are keys for quick saving and loading, and for quickly restarting and

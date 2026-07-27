@@ -208,6 +208,7 @@ menu_charts = {
   graphs        = "  (%1%) GRAPHS  ",
   policy        = "  (%1%) POLICY  ",
   machine_menu  = "  (%1%) MACHINES MENU",
+  adviser_history = "  (%1%) ADVISER HISTORY ",
 }
 
 menu_debug = {
@@ -596,8 +597,6 @@ customise_window = {
   regular_patients = "Regular Patients",
   male_only = "Male Only",
   male_and_female = "Male and Female",
-  every_month = "Every Month",
-  every_day = "Every Day",
   back = "Back",
   movies = "Movies",
   intro = "Play Intro Movie",
@@ -729,6 +728,7 @@ hotkey_window = {
   ingame_panel_charts = "Charts",
   ingame_panel_policy = "Policy",
   ingame_panel_machineMenu = "Machines Menu",
+  ingame_panel_adviserHistory = "Adviser History",
   ingame_panel_map_alt = "Town Map 2",
   ingame_panel_research_alt = "Research 2",
   ingame_panel_casebook_alt = "Casebook 2",
@@ -752,6 +752,7 @@ hotkey_window = {
   ingame_poopLog = "Dump Log",
   ingame_poopStrings = "Dump Strings",
   ingame_patient_gohome = "Send Home",
+  ingame_sellPickedUpItem = "Sell Picked-up Item",
   ingame_storePosition_1 = "1",
   ingame_storePosition_2 = "2",
   ingame_storePosition_3 = "3",
@@ -1060,6 +1061,21 @@ tooltip.machine_menu = {
     total_strength = "Total Strength of the machines.",
   },
   close = "Close the machine list dialog",
+}
+
+adviser_history = {
+  message = "Message",
+  close = "Close",
+}
+
+tooltip.adviser_history = {
+  delete_message = "Click to dismiss this message",
+  message = "List of adviser messages - Newest messages appear first",
+  header = {
+    message = "Adviser messages",
+    delete_message = "Click to delete all messages"
+  },
+  close = "Close the adviser history dialog",
 }
 
 
