@@ -1019,10 +1019,24 @@ function UI:onMouseMove(x, y, dx, dy)
   return repaint
 end
 
---! Process SDL_MULTIGESTURE events.
+--! Process SDL_PINCH_BEGIN events.
 --!
 --!return (boolean) event processed indicator
-function UI:onMultiGesture()
+function UI:onPinchBegin()
+  return false
+end
+
+--! Process SDL_PINCH_UPDATE events.
+--!
+--!return (boolean) event processed indicator
+function UI:onPinchUpdate()
+  return false
+end
+
+--! Process SDL_PINCH_END events.
+--!
+--!return (boolean) event processed indicator
+function UI:onPinchEnd()
   return false
 end
 
@@ -1040,7 +1054,9 @@ function UI:onTick()
   return repaint
 end
 
-
+--! Adds a window to the game
+--! This also handles pause and permitted interaction behaviour as required
+--!param window (window) What is to be displayed
 function UI:addWindow(window)
   if window.closed then
     return
@@ -1059,6 +1075,9 @@ function UI:addWindow(window)
   self:_onAddWindow(window)
 end
 
+--! Remove a window from the game
+--! This also handles pause and permitted interaction behaviour as required
+--!param closing_window (window) What is to be removed
 function UI:removeWindow(closing_window)
   if Window.removeWindow(self, closing_window) then
     local class = closing_window.modal_class
@@ -1096,6 +1115,7 @@ end
 --! Function to check if we have any must pause windows open
 --!return (bool) Returns true if a must pause window is found
 function UI:anyMustPauseWindowOpen()
+  if not self.windows then return false end
   for _, window in pairs(self.windows) do
     if window:mustPause() then return true end
   end
