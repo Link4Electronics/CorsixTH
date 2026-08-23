@@ -10,7 +10,6 @@ pacman -Syu --noconfirm \
 	cmake          \
 	doxygen        \
 	fluidsynth     \
-	libdecor       \
     lua-filesystem \
     lua-lpeg       \
 	patchelf	   \
@@ -24,7 +23,7 @@ pacman -Syu --noconfirm \
 
 echo "Installing debloated packages..."
 echo "---------------------------------------------------------------"
-get-debloated-pkgs --add-common --prefer-nano ffmpeg-mini
+get-debloated-pkgs --add-common --prefer-nano ffmpeg-mini libdecor-mini
 cmake -B build \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DENABLE_UNIT_TESTS=OFF \
