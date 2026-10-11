@@ -30,6 +30,7 @@ corsixth.require("entities.humanoids.staff.receptionist")
 corsixth.require("entities.humanoids.vip")
 corsixth.require("entities.humanoids.grim_reaper")
 corsixth.require("entities.humanoids.inspector")
+corsixth.require("entities.rat")
 corsixth.require("staff_profile")
 corsixth.require("hospital")
 corsixth.require("hospitals.player_hospital")
@@ -155,9 +156,9 @@ function World:World(app, free_build_mode)
   self.spawn_rate = self.map.level_config.popn[0].Change
   self.monthly_spawn_increase = self.spawn_rate
 
-  self.spawn_hours = {}
-  self.spawn_dates = {}
-  self:updateSpawnDates()
+  self.spawn_hours = {} -- The number of patients that need to be spawned by hour for current day.
+  self.spawn_dates = {} -- The number of patients that need to be spawned by day for current month.
+  self:_prepareSpawnDates(true)
 
   self.cheat_announcements = {
     "cheat001.wav", "cheat002.wav", "cheat003.wav",
@@ -428,8 +429,10 @@ end
 --!param hospital (Hospital) Hospital that the new patient should visit.
 --!return (Patient entity) The spawned patient, or 'nil' if no patient spawned.
 function World:spawnPatient(hospital)
+  local disease = self:getNewPatientDisease()
+
   if not hospital then
-    hospital = self:getLocalPlayerHospital()
+    hospital = self:chooseHospitalForPatient(disease)
   end
 
   -- The level might not contain any diseases
@@ -442,22 +445,16 @@ function World:spawnPatient(hospital)
     return
   end
 
-  if not hospital:hasReceptionDesk(true) then return nil end
-
-  -- Construct disease, take a random guess first, as a quick clear-sky attempt.
-  local disease = self.available_diseases[math.random(1, #self.available_diseases)]
-  if not isDiseaseUsableForNewPatient(self, disease, hospital) then
-    -- Lucky shot failed, do a proper calculation.
-    local usable_diseases = {}
-    for _, d in ipairs(self.available_diseases) do
-      if isDiseaseUsableForNewPatient(self, d, hospital) then
-        usable_diseases[#usable_diseases + 1] = d
-      end
+  -- Still need to count them even though you haven't got a staffed desk
+  -- and you also don't want to spawn them on the map
+  hospital.spawn_attempts = hospital.spawn_attempts + 1
+  if not hospital:hasReceptionDesk(true) then
+    if not hospital:isPlayerHospital() then
+      -- TODO: Count patients for AIHospital for now.
+      -- But remove this count for AIHospital capable of building a reception desk.
+      hospital:countNewPatient()
     end
-
-    if #usable_diseases == 0 then return nil end
-
-    disease = usable_diseases[math.random(1, #usable_diseases)]
+    return
   end
 
   -- Construct patient.
@@ -966,6 +963,7 @@ function World:onTick()
       -- TODO: Multiplayer support.
       local spawn_count = self.spawn_hours[self.game_date:hourOfDay() + i - 1]
       if spawn_count and self.hospitals[1].opened then
+        -- TODO: Should check target hospital, not hospital 1
         for _ = 1, spawn_count do
           self:spawnPatient()
         end
@@ -1119,17 +1117,11 @@ function World:onEndDay()
       end
     end
   end
-  -- Any patients tomorrow?
-  self.spawn_hours = {}
-  local day = self.game_date:dayOfMonth()
-  if self.spawn_dates[day] then
-    for _ = 1, self.spawn_dates[day] do
-      local hour = math.random(1, Date.hoursPerDay())
-      self.spawn_hours[hour] = self.spawn_hours[hour] and self.spawn_hours[hour] + 1 or 1
-    end
-  end
+
+  self:_prepareSpawnHours()
 
   -- Autosave
+  local day = self.game_date:dayOfMonth()
   if self.app.config.autosave_frequency == 3 then
     -- Daily autosave
     self.autosave_next_tick = true
@@ -1157,17 +1149,11 @@ end
 -- Called immediately prior to the ingame month changing.
 -- returns true if the game was killed due to the player losing
 function World:onEndMonth()
-  local local_hospital = self:getLocalPlayerHospital()
-  local_hospital.population = 0.25
-  if self.game_date:monthOfGame() >= self.map.level_config.gbv.AllocDelay then
-    local_hospital.population = local_hospital.population * self:getReputationImpact(local_hospital)
-  end
-
   -- Also possibly change world spawn rate according to the level configuration.
   local index = 0
   local popn = self.map.level_config.popn
   while popn[index] do
-    if popn[index].Month == self.game_date:monthOfGame() then
+    if popn[index].Month == self.game_date:monthOfGame() - 1 then
       self.monthly_spawn_increase = popn[index].Change
       break
     end
@@ -1175,7 +1161,7 @@ function World:onEndMonth()
   end
   -- Now set the new spawn rate
   self.spawn_rate = self.spawn_rate + self.monthly_spawn_increase
-  self:updateSpawnDates()
+  self:_prepareSpawnDates(false)
 
   self:makeAvailableStaff(self.game_date:monthOfGame())
   for _, entity in ipairs(self.entities) do
@@ -1190,61 +1176,64 @@ end
 
 -- Called when a month ends. Decides on which dates patients arrive
 -- during the coming month.
+--!param first_game_month (bool) Is that the very first date distribution at the level
 -- TODO: Requires adjustment for AIHospital spawns; see PR 1986 for progress.
-function World:updateSpawnDates()
+function World:_prepareSpawnDates(first_game_month)
   local local_hospital = self:getLocalPlayerHospital()
 
   -- Decide on number of visitors
-  local no_of_spawns = self.spawn_rate * local_hospital.population
+  local number_of_spawns = math.ceil(self.spawn_rate)
   -- If Roujin's Challenge is on, add a fixed bonus to the spawn pool for this player.
   if local_hospital.hosp_cheats:isCheatActive("spawn_rate_cheat") then
     local roujin_bonus = 40
-    no_of_spawns = no_of_spawns + roujin_bonus
+    number_of_spawns = number_of_spawns + roujin_bonus
   end
   -- Compute expected number of patients that arrive while forcing an arrival
   -- if feasible.
   self.spawn_dates = {}
 
-  if local_hospital.population > 0 then
-    local day, last_day = 1, self.game_date:lastDayOfMonth()
+  if number_of_spawns > 0 then
+    -- Prepare a schedule for spawning patients by day.
+    local target_month = self.game_date:resetDayToFirst():plusMonths(first_game_month and 0 or 1)
+    local first_day, last_day = 1, target_month:lastDayOfMonth()
     local force_arrival = true -- Ensure a patient arrives.
-    local interval = last_day / no_of_spawns -- Lower interval = more visits.
-    while day <= last_day do
+    local interval = last_day / number_of_spawns -- Lower interval = more visits.
+    local target_day = first_day
+    while target_day <= last_day do
       local x = math.p_random(interval)
-      day = day + x
-      if day <= last_day then
-        local count = self.spawn_dates[day]
-        self.spawn_dates[day] = count and count + 1 or 1
+      target_day = target_day + x
+      if target_day <= last_day then
+        local count = self.spawn_dates[target_day]
+        self.spawn_dates[target_day] = count and count + 1 or 1
         force_arrival = false
       end
     end
 
-    -- Give the poor user a patient this month anyway.
+    -- Give the poor hospital a patient this month anyway.
     if force_arrival then
-      self.spawn_dates[math.floor(1 + math.random() * last_day)] = 1
+      self.spawn_dates[math.floor(math.random(first_day, last_day))] = 1
     end
+
+    self:_prepareSpawnHours()
   end
 end
 
---! Computes the impact of hospital reputation on the spawn rate.
---! The relation between reputation and its impact is linear.
---! Returns a percentage (as a float):
---!     1% if reputation < 253
---!    60% if reputation == 400
---!   100% if reputation == 500
---!   140% if reputation == 600
---!   180% if reputation == 700
---!   300% if reputation == 1000
---!param hospital (hospital): the hospital used to compute the
---! reputation impact
-function World:getReputationImpact(hospital)
-  local result = 1 + ((hospital.reputation - 500) / 250)
-
-  -- The result must be positive
-  if result <= 0 then
-    return 0.01
-  else
-    return result
+function World:_prepareSpawnHours()
+  self.spawn_hours = {}
+  -- Any patients tomorrow?
+  local date = self.game_date
+  local next_day = 1
+  if not date:isLastDayOfMonth() then
+    local day = date:dayOfMonth()
+    next_day = day + 1
+  end
+  if self.spawn_dates[next_day] then
+    -- Prepare a schedule for spawning patients by hour.
+    for _ = 1, self.spawn_dates[next_day] do
+      local hour = math.random(1, Date.hoursPerDay() - 1)
+      local count = self.spawn_hours[hour]
+      self.spawn_hours[hour] = count and count + 1 or 1
+    end
   end
 end
 
@@ -2373,6 +2362,24 @@ function World:removeAllLitter(x, y)
   for _, litter in ipairs(litters) do litter:remove() end
 end
 
+--! Create a piece of litter on a tile, respecting the rank of any litter
+--! already on that tile.
+--!
+--!param litter_type (string or int) Type passed on to Litter:setLitterType.
+--!param x (int) X position of the tile.
+--!param y (int) Y position of the tile.
+--!param mirror (int) Mirror flag passed on to Litter:setLitterType.
+--!return (Litter or nil) The new litter, or nil if it was outclassed.
+function World:newLitter(litter_type, x, y, mirror)
+  local displaced, outclassed = Litter.resolveTileRank(self:getObjects(x, y), litter_type)
+  if outclassed then return end
+  if displaced then displaced:remove() end
+
+  local litter = self:newObject("litter", x, y)
+  litter:setLitterType(litter_type, mirror)
+  return litter
+end
+
 --! Prepare all tiles of the footprint for build of an object.
 --!param object_footprint Footprint of the object being build.
 --!param x (int) X position of the object
@@ -2677,7 +2684,7 @@ function World:afterLoad(old, new)
     end
     self.spawn_hours = {}
     self.spawn_dates = {}
-    self:updateSpawnDates()
+    self:_prepareSpawnDates(false)
   end
   if old < 45 then
     self:nextVip()
@@ -2758,6 +2765,11 @@ function World:afterLoad(old, new)
       obj:afterLoad(old, new)
     end
   end
+  -- Migrate the entity map (older saves gain the rats layer). Saves before
+  -- version 88 have no entity map at this point; one is built complete below.
+  if self.entity_map then
+    self.entity_map:afterLoad(old, new)
+  end
 
   if old >= 87 then
     self:playLoadedEntitySounds()
@@ -2773,6 +2785,7 @@ function World:afterLoad(old, new)
       end
     end
   end
+
   if old < 108 then
     self.room_build_callbacks = nil
   end
@@ -2925,6 +2938,33 @@ function World:afterLoad(old, new)
     self.system_pause = nil
   end
 
+  if old < 267 then
+    -- Multiple litter can no longer exist on a tile. Remove all but the highest order of litter.
+
+    -- Group litter by tile, keeping the highest-ranked item per tile. The
+    -- losers are collected and removed only afterwards otherwise it would lead to items being skipped.
+    local litter_by_tile = {}
+    local litter_to_remove = {}
+    for _, entity in ipairs(self.entities) do
+      if class.is(entity, Litter) and entity.tile_x then
+        local key = entity.tile_x * self.map.height + entity.tile_y -- unique int key per tile
+        local current_litter = litter_by_tile[key]
+        if not current_litter then
+          litter_by_tile[key] = entity -- no entry was there
+        elseif (entity:getRank() or 0) > (current_litter:getRank() or 0) then
+          -- keep the higher-ranked item, discard the one already stored
+          litter_to_remove[#litter_to_remove + 1] = current_litter
+          litter_by_tile[key] = entity
+        else
+          litter_to_remove[#litter_to_remove + 1] = entity
+        end
+      end
+    end
+    for _, entity in ipairs(litter_to_remove) do
+      if entity:isCleanable() then entity:remove() end
+    end
+  end
+
   -- Fix the initial of staff names
   self:updateInitialsCache()
   for _, staff_category in pairs(self.available_staff) do
@@ -3047,7 +3087,110 @@ function World:validateMap()
   end
 end
 
+--! Find a valid disease that a patient can use
+--!return disease (table)
+function World:getNewPatientDisease()
+  -- Construct disease, take a random guess first, as a quick clear-sky attempt.
+  local hospital = self:getLocalPlayerHospital()
+  local disease = self.available_diseases[math.random(1, #self.available_diseases)]
+  if not isDiseaseUsableForNewPatient(self, disease, hospital) then
+    -- Lucky shot failed, do a proper calculation.
+    local usable_diseases = {}
+    for _, d in ipairs(self.available_diseases) do
+      if isDiseaseUsableForNewPatient(self, d, hospital) then
+        usable_diseases[#usable_diseases + 1] = d
+      end
+    end
+
+    if #usable_diseases == 0 then return nil end
+
+    disease = usable_diseases[math.random(1, #usable_diseases)]
+  end
+  return disease
+end
+
+--! Choose hospital for normal patient
+--!param disease (table) - the disease assigned to this patient
+--!return hospital (Hospital)
+function World:chooseHospitalForPatient(disease)
+  -- TODO: Until changes in competing hospitals' reputations are implemented,
+  -- use only the round-robin method. Otherwise, uncomment the other methods.
+
+  -- round robin if less than gbvAllocDelay
+  --if self.map.level_config.gbv.AllocDelay and self.game_date:monthOfGame() <= self.map.level_config.gbv.AllocDelay then
+  local total_spawn_attempts = 0
+  for _, hospital in ipairs(self.hospitals) do
+    total_spawn_attempts = total_spawn_attempts + hospital.spawn_attempts
+  end
+  local hospital_id = total_spawn_attempts % #self.hospitals + 1
+  return self.hospitals[hospital_id]
+  --end
+
+  -- -- sometimes randomly choose a hospital
+  -- if self.map.level_config.gbv.AllocRand and math.random(1, self.map.level_config.gbv.AllocRand) == 1 then
+  --   return self.hospitals[math.random(1, 4)]
+  -- end
+
+  -- -- From all hospitals randomly select a hospital based on the reputation
+  -- -- and cost of treatment of the patients disease
+  -- local value_proposition = 0
+  -- local hosp_patient_value = {}
+  -- -- calculate the threshold values for each hospital
+  -- for s, hosp in ipairs(self.hospitals) do
+  --   local rep_multiplier = self.map.level_config.gbv.AllocIndRep and self.map.level_config.gbv.AllocIndRep or 2
+  --   local reputation = hosp:getDiseaseReputation(disease.id)
+  --   value_proposition = hosp:getDiseaseReputationPriceFactor(disease.id)
+  --   value_proposition = value_proposition * rep_multiplier * reputation
+  --   if s > 1 then
+  --     value_proposition = value_proposition + hosp_patient_value[s - 1]
+  --   end
+  --   hosp_patient_value[s] = value_proposition
+  -- end
+
+  -- -- Check random value, against individual hospital thresholds
+  -- local threshold = math.random(0, math.floor(value_proposition - 1))
+  -- for i, hosp_value in ipairs(hosp_patient_value) do
+  --   if threshold < hosp_value then
+  --     return self.hospitals[i]
+  --   end
+  -- end
+end
+
 --! Returns whether the level being played is part of a campaign or not
 function World:isCampaign()
   return type(self.map.level_number) == "number" or self.campaign_info
+end
+
+-- A rat is considered "near" the cursor for the crosshair when the cursor is
+-- within this many pixels of where the rat is actually drawn.
+local near_rat_pixel_radius = 24
+
+--! Determine if any rat is near the given screen coordinates (relative to the
+-- map origin). Compares against each nearby rat's drawn pixel position rather
+-- than the tile it is anchored to, which can be up to a tile away while it
+-- scurries.
+--!param x (number) x-coordinate on the screen
+--!param y (number) y-coordinate on the screen
+--!return (boolean) Whether a rat is near the cursor.
+function World:isNearRat(x, y)
+  local tile_x, tile_y = self.map:ScreenToWorld(x, y)
+  tile_x, tile_y = math.floor(tile_x), math.floor(tile_y)
+  local radius_sq = near_rat_pixel_radius * near_rat_pixel_radius
+  for dx = -2, 2 do
+    for dy = -2, 2 do
+      local tx, ty = tile_x + dx, tile_y + dy
+      local rats_at_coord = self:isOnMap(tx, ty) and self.entity_map:getRatsAtCoordinate(tx, ty)
+      if rats_at_coord and #rats_at_coord > 0 then
+        for _, rat in ipairs(rats_at_coord) do
+          local rx, ry = self.map:WorldToScreen(rat.tile_x, rat.tile_y)
+          local px, py = rat.th:getPosition()
+          local ddx, ddy = x - (rx + px), y - (ry + py)
+          if ddx * ddx + ddy * ddy <= radius_sq then
+            return true
+          end
+        end
+      end
+    end
+  end
+  return false
 end
